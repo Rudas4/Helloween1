@@ -21,6 +21,10 @@
       flex-direction: column;
       align-items: center;
       justify-content: center;
+      touch-action: manipulation;
+      -webkit-touch-callout: none;
+      -webkit-user-select: none;
+      user-select: none;
     }
     
     #start {
@@ -58,6 +62,7 @@
       font-size: 20px;
       cursor: pointer;
       font-weight: bold;
+      -webkit-tap-highlight-color: transparent;
     }
 
     #game {
@@ -126,6 +131,9 @@
       border-radius: 6px;
       user-select: none;
       background-color: #222;
+      touch-action: none;
+      -webkit-touch-callout: none;
+      -webkit-user-select: none;
     }
     
     .piece:active {
@@ -135,6 +143,15 @@
     .cell .piece {
       object-fit: cover;
       background-color: #000;
+    }
+
+    .piece.dragging {
+      position: fixed;
+      z-index: 100;
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+      opacity: 0.8;
+      filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.5));
     }
 
     /* Zseblámpa effekt a végén */
@@ -317,12 +334,11 @@ A feladatod azonban nem ér véget a puzzle kirakásával. Keresgélj figyelmese
 
     function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
 
-    function createDraggableImage(name, isInCell = false){
+    function createTouchImage(name, isInCell = false){
       const img = document.createElement('img');
       img.src = name + '.png';
       img.alt = name;
       img.className = 'piece';
-      img.draggable = true;
       img.dataset.name = name;
       
       if(isInCell) {
@@ -333,8 +349,11 @@ A feladatod azonban nem ér véget a puzzle kirakásával. Keresgélj figyelmese
         img.style.maxHeight = '90px'; /* Még kisebb darabok a poolban */
       }
       
-      img.addEventListener('dragstart', onDragStart);
-      img.addEventListener('dragend', onDragEnd);
+      // Touch események hozzáadása
+      img.addEventListener('touchstart', onTouchStart);
+      img.addEventListener('touchmove', onTouchMove);
+      img.addEventListener('touchend', onTouchEnd);
+      
       return img;
     }
 
@@ -342,65 +361,129 @@ A feladatod azonban nem ér véget a puzzle kirakásával. Keresgélj figyelmese
       pool.innerHTML='';
       const shuffled = shuffle([...PIECES]);
       for(const name of shuffled){
-        const img = createDraggableImage(name, false);
+        const img = createTouchImage(name, false);
         pool.appendChild(img);
       }
     }
 
     let dragged = null;
-    function onDragStart(e){ 
-      dragged = e.target; 
-      e.dataTransfer.setData('text/plain', e.target.dataset.name); 
-      setTimeout(()=>{ e.target.style.opacity='0.6'},0) 
+    let dragOffsetX = 0;
+    let dragOffsetY = 0;
+    
+    function onTouchStart(e) {
+      e.preventDefault();
+      const touch = e.touches[0];
+      const target = e.target;
+      
+      // Csak puzzle darabok mozgathatók
+      if (!target.classList.contains('piece')) return;
+      
+      dragged = target;
+      
+      // Kiszámoljuk az offsetet (érintés pontja a kép közepéhez képest)
+      const rect = target.getBoundingClientRect();
+      dragOffsetX = touch.clientX - rect.left;
+      dragOffsetY = touch.clientY - rect.top;
+      
+      // Hozzáadjuk a dragging osztályt a vizuális jelzéshez
+      target.classList.add('dragging');
+      
+      // Pozícionáljuk a képet
+      target.style.left = touch.clientX + 'px';
+      target.style.top = touch.clientY + 'px';
+      target.style.width = rect.width + 'px';
+      target.style.height = rect.height + 'px';
     }
     
-    function onDragEnd(e){ 
-      if(e.target) e.target.style.opacity='1'; 
-      dragged=null 
-    }
-
-    const cells = Array.from(document.querySelectorAll('.cell'));
-    cells.forEach(cell => {
-      cell.addEventListener('dragover', e => e.preventDefault());
-      cell.addEventListener('drop', onDrop);
-    });
-
-    pool.addEventListener('dragover', e => e.preventDefault());
-    pool.addEventListener('drop', e => {
+    function onTouchMove(e) {
+      if (!dragged) return;
       e.preventDefault();
-      const name = e.dataTransfer.getData('text/plain');
-      const fromCell = findCellContaining(name);
-      if(fromCell){fromCell.innerHTML='';}
-      const img = createDraggableImage(name, false);
-      pool.appendChild(img);
-      checkWin();
-    });
-
-    function onDrop(e){
-      e.preventDefault();
-      const name = e.dataTransfer.getData('text/plain');
-      const fromCell = findCellContaining(name);
       
+      const touch = e.touches[0];
+      
+      // Frissítjük a kép pozícióját
+      dragged.style.left = (touch.clientX) + 'px';
+      dragged.style.top = (touch.clientY) + 'px';
+    }
+    
+    function onTouchEnd(e) {
+      if (!dragged) return;
+      
+      const touch = e.changedTouches[0];
+      const target = dragged;
+      const name = target.dataset.name;
+      
+      // Ellenőrizzük, hogy a cella fölé ejtettük-e
+      const cells = Array.from(document.querySelectorAll('.cell'));
+      const dropTarget = document.elementFromPoint(touch.clientX, touch.clientY);
+      
+      let droppedInCell = false;
+      
+      // Ellenőrizzük, hogy cella fölé ejtettük-e
+      if (dropTarget && dropTarget.classList.contains('cell')) {
+        dropPieceIntoTarget(name, dropTarget);
+        droppedInCell = true;
+      } 
+      // Ellenőrizzük, hogy pool fölé ejtettük-e
+      else if (dropTarget && (dropTarget.classList.contains('pool') || dropTarget.closest('.pool'))) {
+        dropPieceIntoPool(name);
+        droppedInCell = true;
+      }
+      
+      // Ha nem ejtettük sehova, visszahelyezzük a poolba
+      if (!droppedInCell) {
+        dropPieceIntoPool(name);
+      }
+      
+      // Visszaállítjuk a darabot
+      target.classList.remove('dragging');
+      target.style.left = '';
+      target.style.top = '';
+      target.style.width = '';
+      target.style.height = '';
+      
+      dragged = null;
+      checkWin();
+    }
+    
+    function dropPieceIntoTarget(name, targetCell) {
+      // Ellenőrizzük, hogy van-e már kép a cellában
+      const existingImg = targetCell.querySelector('img');
+      
+      // Ha van már kép a cellában, visszarakjuk a poolba
+      if (existingImg) {
+        const prevName = existingImg.dataset.name;
+        existingImg.remove();
+        const prevImg = createTouchImage(prevName, false);
+        pool.appendChild(prevImg);
+      }
+      
+      // Eltávolítjuk a darabot a poolból, ha ott volt
       const fromPool = findInPool(name);
-      if(fromPool) {
+      if (fromPool) {
         fromPool.remove();
       }
       
-      if(fromCell){fromCell.innerHTML='';}
-      const existingImg = e.currentTarget.querySelector('img');
-      if(existingImg){
-        const prevName = existingImg.dataset.name;
-        existingImg.remove();
-        const prevImg = createDraggableImage(prevName, false);
-        pool.appendChild(prevImg);
-      }
-      const img = createDraggableImage(name, true);
-      e.currentTarget.innerHTML='';
-      e.currentTarget.appendChild(img);
-      checkWin();
+      // Hozzáadjuk az új darabot a cellához
+      const img = createTouchImage(name, true);
+      targetCell.innerHTML = '';
+      targetCell.appendChild(img);
     }
-
+    
+    function dropPieceIntoPool(name) {
+      // Eltávolítjuk a darabot a cellából, ha ott volt
+      const fromCell = findCellContaining(name);
+      if (fromCell) {
+        fromCell.innerHTML = '';
+      }
+      
+      // Hozzáadjuk a poolhoz
+      const img = createTouchImage(name, false);
+      pool.appendChild(img);
+    }
+    
     function findCellContaining(name){
+      const cells = Array.from(document.querySelectorAll('.cell'));
       return cells.find(c => c.querySelector('img') && c.querySelector('img').alt === name) || null;
     }
     
@@ -410,6 +493,7 @@ A feladatod azonban nem ér véget a puzzle kirakásával. Keresgélj figyelmese
     }
 
     function checkWin(){
+      const cells = Array.from(document.querySelectorAll('.cell'));
       let correct = true;
       for(let i=0;i<cells.length;i++){
         const img = cells[i].querySelector('img');
