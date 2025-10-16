@@ -1,0 +1,465 @@
+<!doctype html>
+<html lang="hu">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Nyomozás - Puzzle játék</title>
+  <style>
+    :root{
+      --cell-w: 200px; /* Még kisebb méret */
+      --cell-h: 150px; /* Még kisebb méret */
+      --light-radius: 320px;
+      --soft-edge: 80px;
+    }
+    
+    html, body {
+      height: 100%;
+      margin: 0;
+      font-family: system-ui, Segoe UI, Roboto, Helvetica, Arial;
+      background: #000;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    #start {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background-size: cover;
+      background-position: center;
+      background-color: #000;
+      z-index: 10;
+    }
+    
+    #start .center {
+      background: rgba(0,0,0,0.7);
+      padding: 40px;
+      border-radius: 12px;
+      text-align: center;
+      border: 1px solid #333;
+    }
+    
+    #start h1 {
+      color: #fff;
+      margin: 0 0 20px;
+      font-size: 32px;
+    }
+    
+    #start button {
+      background: #fff;
+      color: #000;
+      border: 0;
+      padding: 16px 32px;
+      border-radius: 8px;
+      font-size: 20px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+
+    #game {
+      display: none;
+      padding: 20px;
+      box-sizing: border-box;
+      background: #000;
+      width: 100%;
+      max-width: 900px; /* Még kisebb max szélesség */
+      margin: 0 auto;
+    }
+    
+    .layout {
+      display: flex;
+      gap: 20px;
+      justify-content: center;
+      align-items: flex-start;
+      margin: 0 auto;
+    }
+    
+    .board {
+      display: grid;
+      grid-template-columns: repeat(3, var(--cell-w));
+      grid-auto-rows: var(--cell-h);
+      gap: 6px;
+      padding: 12px;
+      background: #111;
+      border-radius: 8px;
+      box-shadow: 0 8px 25px rgba(255,255,255,0.1);
+      border: 1px solid #333;
+    }
+    
+    .cell {
+      width: var(--cell-w);
+      height: var(--cell-h);
+      border: 2px dashed #444;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      position: relative;
+      background: #000;
+    }
+
+    .pool {
+      flex: 0 0 250px; /* Még kisebb pool szélesség */
+      padding: 12px;
+      border-radius: 8px;
+      background: linear-gradient(180deg, #111, #0a0a0a);
+      box-shadow: 0 8px 25px rgba(255,255,255,0.05);
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-content: flex-start;
+      justify-content: center;
+      border: 1px solid #333;
+      max-height: 500px; /* Még kisebb max magasság */
+      overflow-y: auto;
+    }
+    
+    .piece {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      cursor: grab;
+      border-radius: 6px;
+      user-select: none;
+      background-color: #222;
+    }
+    
+    .piece:active {
+      cursor: grabbing;
+    }
+    
+    .cell .piece {
+      object-fit: cover;
+      background-color: #000;
+    }
+
+    /* Zseblámpa effekt a végén */
+    #end {
+      display: none;
+      height: 100vh;
+      width: 100%;
+      position: relative;
+      overflow: hidden;
+      cursor: none;
+    }
+
+    .end-image {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .dark-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      pointer-events: none;
+      background: radial-gradient(
+        circle var(--light-radius) at var(--mx, 50%) var(--my, 50%),
+        rgba(0,0,0,0) 0%,
+        rgba(0,0,0,0) calc(100% - var(--soft-edge)),
+        rgba(0,0,0,1) 100%
+      );
+      transition: background 0.05s ease-out;
+    }
+
+    .flash {
+      position: fixed;
+      width: calc(var(--light-radius) * 1.3);
+      height: calc(var(--light-radius) * 1.3);
+      border-radius: 50%;
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+      background: radial-gradient(circle,
+        rgba(255,255,230,0.9) 0%,
+        rgba(255,255,230,0.1) 50%,
+        rgba(255,255,230,0) 80%);
+      mix-blend-mode: screen;
+      filter: blur(4px);
+      z-index: 5;
+      transition: left 0.05s ease-out, top 0.05s ease-out;
+    }
+
+    .instruction {
+      text-align: center;
+      margin-bottom: 15px;
+      color: #fff;
+      font-weight: bold;
+      font-size: 16px;
+      width: 100%;
+      line-height: 1.4;
+    }
+
+    /* Reszponzív design - frissítve a még kisebb méretekhez */
+    @media (max-width: 900px) {
+      :root {
+        --cell-w: 180px;
+        --cell-h: 135px;
+      }
+      .pool {
+        flex: 0 0 220px;
+      }
+    }
+    
+    @media (max-width: 768px) {
+      .layout {
+        flex-direction: column;
+        align-items: center;
+        gap: 15px;
+      }
+      .pool {
+        order: 2;
+        width: 100%;
+        max-width: 650px;
+        flex: none;
+        max-height: 200px;
+      }
+      .board {
+        order: 1;
+      }
+      :root {
+        --cell-w: 160px;
+        --cell-h: 120px;
+      }
+    }
+    
+    @media (max-width: 600px) {
+      :root {
+        --cell-w: 140px;
+        --cell-h: 105px;
+        --light-radius: 240px;
+        --soft-edge: 60px;
+      }
+      .instruction {
+        font-size: 14px;
+        padding: 0 10px;
+      }
+      #start .center {
+        padding: 25px 15px;
+      }
+      #start h1 {
+        font-size: 26px;
+      }
+      #start button {
+        padding: 12px 24px;
+        font-size: 18px;
+      }
+    }
+    
+    @media (max-width: 480px) {
+      :root {
+        --cell-w: 110px;
+        --cell-h: 82px;
+        --light-radius: 200px;
+        --soft-edge: 50px;
+      }
+      .pool {
+        max-height: 150px;
+      }
+      #game {
+        padding: 10px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <section id="start" style="background-image:url('kezdes.png')">
+    <div class="center">
+      <h1>Nyomozás</h1>
+      <button id="startBtn">Kezdés</button>
+    </div>
+  </section>
+
+  <main id="game">
+    <div class="instruction">Helyezd a puzzle-darabokat a megfelelő helyre!
+A feladatod azonban nem ér véget a puzzle kirakásával. Keresgélj figyelmesen a következő oldalon!</div>
+    <div class="layout">
+      <div class="board" id="board">
+        <div class="cell" data-index="1"></div>
+        <div class="cell" data-index="2"></div>
+        <div class="cell" data-index="3"></div>
+        <div class="cell" data-index="4"></div>
+        <div class="cell" data-index="5"></div>
+        <div class="cell" data-index="6"></div>
+        <div class="cell" data-index="7"></div>
+        <div class="cell" data-index="8"></div>
+        <div class="cell" data-index="9"></div>
+      </div>
+      <aside class="pool" id="pool"></aside>
+    </div>
+  </main>
+
+  <section id="end">
+    <img class="end-image" src="befejezo.png" alt="Befejező kép" />
+    <div class="dark-overlay" id="overlay"></div>
+    <div class="flash" id="flash"></div>
+  </section>
+
+  <script>
+    const PIECES = ['jatek1','jatek2','jatek3','jatek4','jatek5','jatek6','jatek7','jatek8','jatek9'];
+
+    const startBtn = document.getElementById('startBtn');
+    const startSection = document.getElementById('start');
+    const game = document.getElementById('game');
+    const pool = document.getElementById('pool');
+    const board = document.getElementById('board');
+    const end = document.getElementById('end');
+    const overlay = document.getElementById("overlay");
+    const flash = document.getElementById("flash");
+
+    function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+
+    function createDraggableImage(name, isInCell = false){
+      const img = document.createElement('img');
+      img.src = name + '.png';
+      img.alt = name;
+      img.className = 'piece';
+      img.draggable = true;
+      img.dataset.name = name;
+      
+      if(isInCell) {
+        img.style.objectFit = 'cover';
+      } else {
+        img.style.objectFit = 'contain';
+        img.style.maxWidth = '110px'; /* Még kisebb darabok a poolban */
+        img.style.maxHeight = '90px'; /* Még kisebb darabok a poolban */
+      }
+      
+      img.addEventListener('dragstart', onDragStart);
+      img.addEventListener('dragend', onDragEnd);
+      return img;
+    }
+
+    function populatePool(){
+      pool.innerHTML='';
+      const shuffled = shuffle([...PIECES]);
+      for(const name of shuffled){
+        const img = createDraggableImage(name, false);
+        pool.appendChild(img);
+      }
+    }
+
+    let dragged = null;
+    function onDragStart(e){ 
+      dragged = e.target; 
+      e.dataTransfer.setData('text/plain', e.target.dataset.name); 
+      setTimeout(()=>{ e.target.style.opacity='0.6'},0) 
+    }
+    
+    function onDragEnd(e){ 
+      if(e.target) e.target.style.opacity='1'; 
+      dragged=null 
+    }
+
+    const cells = Array.from(document.querySelectorAll('.cell'));
+    cells.forEach(cell => {
+      cell.addEventListener('dragover', e => e.preventDefault());
+      cell.addEventListener('drop', onDrop);
+    });
+
+    pool.addEventListener('dragover', e => e.preventDefault());
+    pool.addEventListener('drop', e => {
+      e.preventDefault();
+      const name = e.dataTransfer.getData('text/plain');
+      const fromCell = findCellContaining(name);
+      if(fromCell){fromCell.innerHTML='';}
+      const img = createDraggableImage(name, false);
+      pool.appendChild(img);
+      checkWin();
+    });
+
+    function onDrop(e){
+      e.preventDefault();
+      const name = e.dataTransfer.getData('text/plain');
+      const fromCell = findCellContaining(name);
+      
+      const fromPool = findInPool(name);
+      if(fromPool) {
+        fromPool.remove();
+      }
+      
+      if(fromCell){fromCell.innerHTML='';}
+      const existingImg = e.currentTarget.querySelector('img');
+      if(existingImg){
+        const prevName = existingImg.dataset.name;
+        existingImg.remove();
+        const prevImg = createDraggableImage(prevName, false);
+        pool.appendChild(prevImg);
+      }
+      const img = createDraggableImage(name, true);
+      e.currentTarget.innerHTML='';
+      e.currentTarget.appendChild(img);
+      checkWin();
+    }
+
+    function findCellContaining(name){
+      return cells.find(c => c.querySelector('img') && c.querySelector('img').alt === name) || null;
+    }
+    
+    function findInPool(name){
+      const poolImages = Array.from(pool.querySelectorAll('img'));
+      return poolImages.find(img => img.alt === name) || null;
+    }
+
+    function checkWin(){
+      let correct = true;
+      for(let i=0;i<cells.length;i++){
+        const img = cells[i].querySelector('img');
+        if(!img || img.alt !== PIECES[i]){correct=false;break;}
+      }
+      if(correct){showEndPage();}
+    }
+
+    function moveLight(x, y) {
+      const mx = (x / window.innerWidth) * 100;
+      const my = (y / window.innerHeight) * 100;
+
+      overlay.style.setProperty("--mx", mx + "%");
+      overlay.style.setProperty("--my", my + "%");
+
+      flash.style.left = x + "px";
+      flash.style.top = y + "px";
+    }
+
+    function showEndPage(){
+      startSection.style.display='none';
+      game.style.display='none';
+      end.style.display='block';
+      
+      moveLight(window.innerWidth / 2, window.innerHeight / 2);
+      
+      document.addEventListener("mousemove", (e) => {
+        moveLight(e.clientX, e.clientY);
+      });
+
+      document.addEventListener("touchmove", (e) => {
+        if (e.touches.length) {
+          moveLight(e.touches[0].clientX, e.touches[0].clientY);
+          e.preventDefault();
+        }
+      });
+    }
+
+    startBtn.addEventListener('click', ()=>{
+      startSection.style.display='none';
+      game.style.display='block';
+      populatePool();
+      for(const n of PIECES) new Image().src = n + '.png';
+      new Image().src = 'befejezo.png';
+    });
+
+    document.addEventListener('DOMContentLoaded', ()=>{
+      end.style.display='none';
+      game.style.display='none';
+    });
+  </script>
+</body>
+</html>
