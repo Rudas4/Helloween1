@@ -12,6 +12,10 @@
       --soft-edge: 80px;
     }
     
+    * {
+      box-sizing: border-box;
+    }
+    
     html, body {
       height: 100%;
       margin: 0;
@@ -28,14 +32,30 @@
     
     #start {
       position: fixed;
-      inset: 0;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
       display: flex;
       align-items: center;
       justify-content: center;
-      background-size: cover;
-      background-position: center;
       background-color: #000;
       z-index: 10;
+      overflow: hidden;
+    }
+    
+    #start::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-image: url('kezdes.png');
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+      z-index: -1;
     }
     
     #start .center {
@@ -46,6 +66,7 @@
       border: 1px solid #333;
       max-width: 90%;
       box-sizing: border-box;
+      z-index: 1;
     }
     
     #start h1 {
@@ -155,21 +176,41 @@
       background-color: #000;
     }
 
-    /* Zseblámpa effekt a végén */
+    /* Befejező képernyő - teljes képernyős, arányos háttérrel */
     #end {
       display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
       height: 100vh;
-      width: 100%;
-      position: relative;
       overflow: hidden;
       cursor: none;
+    }
+
+    .end-image-container {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
 
     .end-image {
       width: 100%;
       height: 100%;
-      object-fit: cover;
+      object-fit: contain;
       display: block;
+    }
+
+    /* Mobil esetén - ha a kép túl nagy, akkor cover mód */
+    @media (max-height: 600px) {
+      .end-image {
+        object-fit: cover;
+      }
     }
 
     .dark-overlay {
@@ -250,6 +291,16 @@
         --cell-w: 160px;
         --cell-h: 120px;
       }
+      #start .center {
+        padding: 25px 15px;
+      }
+      #start h1 {
+        font-size: 26px;
+      }
+      #start button {
+        padding: 12px 24px;
+        font-size: 18px;
+      }
     }
     
     @media (max-width: 600px) {
@@ -262,16 +313,6 @@
       .instruction {
         font-size: 14px;
         padding: 0 10px;
-      }
-      #start .center {
-        padding: 25px 15px;
-      }
-      #start h1 {
-        font-size: 26px;
-      }
-      #start button {
-        padding: 12px 24px;
-        font-size: 18px;
       }
       .board {
         aspect-ratio: 3/2;
@@ -305,12 +346,30 @@
       .board {
         max-width: calc(var(--cell-w) * 3 + 12px + 24px);
       }
+      #start h1 {
+        font-size: 22px;
+      }
+      #start button {
+        padding: 10px 20px;
+        font-size: 16px;
+      }
+    }
+
+    /* Extra kis képernyők */
+    @media (max-height: 500px) {
+      #start .center {
+        padding: 15px 10px;
+      }
+      #start h1 {
+        font-size: 20px;
+        margin-bottom: 10px;
+      }
     }
   </style>
 </head>
 <body>
 
-  <section id="start" style="background-image:url('kezdes.png')">
+  <section id="start">
     <div class="center">
       <h1>Nyomozás</h1>
       <button id="startBtn">Kezdés</button>
@@ -337,7 +396,9 @@ A feladatod azonban nem ér véget a puzzle kirakásával. Keresgélj figyelmese
   </main>
 
   <section id="end">
-    <img class="end-image" src="befejezo.png" alt="Befejező kép" />
+    <div class="end-image-container">
+      <img class="end-image" src="befejezo.png" alt="Befejező kép" />
+    </div>
     <div class="dark-overlay" id="overlay"></div>
     <div class="flash" id="flash"></div>
   </section>
@@ -353,6 +414,30 @@ A feladatod azonban nem ér véget a puzzle kirakásával. Keresgélj figyelmese
     const end = document.getElementById('end');
     const overlay = document.getElementById("overlay");
     const flash = document.getElementById("flash");
+
+    // Képek előzetes betöltése a gyorsabb működés érdekében
+    function preloadImages() {
+      const images = [];
+      
+      // Kezdő kép
+      const startImg = new Image();
+      startImg.src = 'kezdes.png';
+      images.push(startImg);
+      
+      // Befejező kép
+      const endImg = new Image();
+      endImg.src = 'befejezo.png';
+      images.push(endImg);
+      
+      // Puzzle darabok
+      for(const piece of PIECES) {
+        const img = new Image();
+        img.src = piece + '.png';
+        images.push(img);
+      }
+      
+      return images;
+    }
 
     function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
 
@@ -554,12 +639,15 @@ A feladatod azonban nem ér véget a puzzle kirakásával. Keresgélj figyelmese
       });
     }
 
+    // Képek előzetes betöltése az oldal betöltésekor
+    window.addEventListener('load', () => {
+      preloadImages();
+    });
+
     startBtn.addEventListener('click', ()=>{
       startSection.style.display='none';
       game.style.display='block';
       populatePool();
-      for(const n of PIECES) new Image().src = n + '.png';
-      new Image().src = 'befejezo.png';
     });
 
     document.addEventListener('DOMContentLoaded', ()=>{
