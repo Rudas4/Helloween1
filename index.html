@@ -2,12 +2,12 @@
 <html lang="hu">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
   <title>Nyomozás - Puzzle játék</title>
   <style>
     :root{
-      --cell-w: 200px; /* Még kisebb méret */
-      --cell-h: 150px; /* Még kisebb méret */
+      --cell-w: 200px;
+      --cell-h: 150px;
       --light-radius: 320px;
       --soft-edge: 80px;
     }
@@ -15,16 +15,15 @@
     html, body {
       height: 100%;
       margin: 0;
+      padding: 0;
       font-family: system-ui, Segoe UI, Roboto, Helvetica, Arial;
       background: #000;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
+      overflow: hidden;
       touch-action: manipulation;
-      -webkit-touch-callout: none;
-      -webkit-user-select: none;
-      user-select: none;
     }
     
     #start {
@@ -45,6 +44,8 @@
       border-radius: 12px;
       text-align: center;
       border: 1px solid #333;
+      max-width: 90%;
+      box-sizing: border-box;
     }
     
     #start h1 {
@@ -62,42 +63,51 @@
       font-size: 20px;
       cursor: pointer;
       font-weight: bold;
-      -webkit-tap-highlight-color: transparent;
+      width: 100%;
+      max-width: 200px;
     }
 
     #game {
       display: none;
-      padding: 20px;
+      padding: 10px;
       box-sizing: border-box;
       background: #000;
       width: 100%;
-      max-width: 900px; /* Még kisebb max szélesség */
+      max-width: 100%;
       margin: 0 auto;
+      overflow: auto;
+      height: 100vh;
     }
     
     .layout {
       display: flex;
-      gap: 20px;
+      gap: 15px;
       justify-content: center;
       align-items: flex-start;
       margin: 0 auto;
+      width: 100%;
+      max-width: 100%;
+      flex-wrap: wrap;
     }
     
     .board {
       display: grid;
-      grid-template-columns: repeat(3, var(--cell-w));
-      grid-auto-rows: var(--cell-h);
+      grid-template-columns: repeat(3, 1fr);
+      grid-auto-rows: 1fr;
       gap: 6px;
       padding: 12px;
       background: #111;
       border-radius: 8px;
       box-shadow: 0 8px 25px rgba(255,255,255,0.1);
       border: 1px solid #333;
+      width: 100%;
+      max-width: calc(var(--cell-w) * 3 + 12px + 24px);
+      aspect-ratio: 3/2;
     }
     
     .cell {
-      width: var(--cell-w);
-      height: var(--cell-h);
+      width: 100%;
+      height: 100%;
       border: 2px dashed #444;
       display: flex;
       align-items: center;
@@ -108,7 +118,7 @@
     }
 
     .pool {
-      flex: 0 0 250px; /* Még kisebb pool szélesség */
+      flex: 1;
       padding: 12px;
       border-radius: 8px;
       background: linear-gradient(180deg, #111, #0a0a0a);
@@ -119,8 +129,10 @@
       align-content: flex-start;
       justify-content: center;
       border: 1px solid #333;
-      max-height: 500px; /* Még kisebb max magasság */
+      max-height: 500px;
       overflow-y: auto;
+      min-width: 250px;
+      max-width: 100%;
     }
     
     .piece {
@@ -132,8 +144,6 @@
       user-select: none;
       background-color: #222;
       touch-action: none;
-      -webkit-touch-callout: none;
-      -webkit-user-select: none;
     }
     
     .piece:active {
@@ -143,15 +153,6 @@
     .cell .piece {
       object-fit: cover;
       background-color: #000;
-    }
-
-    .piece.dragging {
-      position: fixed;
-      z-index: 100;
-      transform: translate(-50%, -50%);
-      pointer-events: none;
-      opacity: 0.8;
-      filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.5));
     }
 
     /* Zseblámpa effekt a végén */
@@ -212,16 +213,18 @@
       font-size: 16px;
       width: 100%;
       line-height: 1.4;
+      padding: 0 10px;
+      box-sizing: border-box;
     }
 
-    /* Reszponzív design - frissítve a még kisebb méretekhez */
+    /* Reszponzív design - frissítve mobiloptimalizáláshoz */
     @media (max-width: 900px) {
       :root {
         --cell-w: 180px;
         --cell-h: 135px;
       }
       .pool {
-        flex: 0 0 220px;
+        min-width: 220px;
       }
     }
     
@@ -237,9 +240,11 @@
         max-width: 650px;
         flex: none;
         max-height: 200px;
+        min-width: unset;
       }
       .board {
         order: 1;
+        max-width: 100%;
       }
       :root {
         --cell-w: 160px;
@@ -268,6 +273,10 @@
         padding: 12px 24px;
         font-size: 18px;
       }
+      .board {
+        aspect-ratio: 3/2;
+        max-width: calc(var(--cell-w) * 3 + 12px + 24px);
+      }
     }
     
     @media (max-width: 480px) {
@@ -281,7 +290,20 @@
         max-height: 150px;
       }
       #game {
-        padding: 10px;
+        padding: 5px;
+      }
+      .board {
+        max-width: calc(var(--cell-w) * 3 + 12px + 24px);
+      }
+    }
+    
+    @media (max-width: 360px) {
+      :root {
+        --cell-w: 95px;
+        --cell-h: 71px;
+      }
+      .board {
+        max-width: calc(var(--cell-w) * 3 + 12px + 24px);
       }
     }
   </style>
@@ -334,24 +356,28 @@ A feladatod azonban nem ér véget a puzzle kirakásával. Keresgélj figyelmese
 
     function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
 
-    function createTouchImage(name, isInCell = false){
+    function createDraggableImage(name, isInCell = false){
       const img = document.createElement('img');
       img.src = name + '.png';
       img.alt = name;
       img.className = 'piece';
+      img.draggable = true;
       img.dataset.name = name;
       
       if(isInCell) {
         img.style.objectFit = 'cover';
       } else {
         img.style.objectFit = 'contain';
-        img.style.maxWidth = '110px'; /* Még kisebb darabok a poolban */
-        img.style.maxHeight = '90px'; /* Még kisebb darabok a poolban */
+        img.style.maxWidth = '110px';
+        img.style.maxHeight = '90px';
       }
       
+      img.addEventListener('dragstart', onDragStart);
+      img.addEventListener('dragend', onDragEnd);
+      
       // Touch események hozzáadása
-      img.addEventListener('touchstart', onTouchStart);
-      img.addEventListener('touchmove', onTouchMove);
+      img.addEventListener('touchstart', onTouchStart, {passive: false});
+      img.addEventListener('touchmove', onTouchMove, {passive: false});
       img.addEventListener('touchend', onTouchEnd);
       
       return img;
@@ -361,129 +387,126 @@ A feladatod azonban nem ér véget a puzzle kirakásával. Keresgélj figyelmese
       pool.innerHTML='';
       const shuffled = shuffle([...PIECES]);
       for(const name of shuffled){
-        const img = createTouchImage(name, false);
+        const img = createDraggableImage(name, false);
         pool.appendChild(img);
       }
     }
 
     let dragged = null;
-    let dragOffsetX = 0;
-    let dragOffsetY = 0;
+    let touchOffsetX = 0;
+    let touchOffsetY = 0;
     
+    function onDragStart(e){ 
+      dragged = e.target; 
+      e.dataTransfer.setData('text/plain', e.target.dataset.name); 
+      setTimeout(()=>{ e.target.style.opacity='0.6'},0) 
+    }
+    
+    function onDragEnd(e){ 
+      if(e.target) e.target.style.opacity='1'; 
+      dragged=null;
+    }
+    
+    // Touch események kezelése
     function onTouchStart(e) {
       e.preventDefault();
+      dragged = e.target;
       const touch = e.touches[0];
-      const target = e.target;
+      const rect = dragged.getBoundingClientRect();
+      touchOffsetX = touch.clientX - rect.left;
+      touchOffsetY = touch.clientY - rect.top;
       
-      // Csak puzzle darabok mozgathatók
-      if (!target.classList.contains('piece')) return;
+      dragged.style.opacity = '0.6';
+      dragged.style.position = 'fixed';
+      dragged.style.zIndex = '1000';
+      dragged.style.pointerEvents = 'none';
       
-      dragged = target;
-      
-      // Kiszámoljuk az offsetet (érintés pontja a kép közepéhez képest)
-      const rect = target.getBoundingClientRect();
-      dragOffsetX = touch.clientX - rect.left;
-      dragOffsetY = touch.clientY - rect.top;
-      
-      // Hozzáadjuk a dragging osztályt a vizuális jelzéshez
-      target.classList.add('dragging');
-      
-      // Pozícionáljuk a képet
-      target.style.left = touch.clientX + 'px';
-      target.style.top = touch.clientY + 'px';
-      target.style.width = rect.width + 'px';
-      target.style.height = rect.height + 'px';
+      updateTouchPosition(e);
     }
     
     function onTouchMove(e) {
       if (!dragged) return;
       e.preventDefault();
-      
-      const touch = e.touches[0];
-      
-      // Frissítjük a kép pozícióját
-      dragged.style.left = (touch.clientX) + 'px';
-      dragged.style.top = (touch.clientY) + 'px';
+      updateTouchPosition(e);
     }
     
     function onTouchEnd(e) {
       if (!dragged) return;
       
-      const touch = e.changedTouches[0];
-      const target = dragged;
-      const name = target.dataset.name;
+      dragged.style.opacity = '1';
+      dragged.style.position = '';
+      dragged.style.zIndex = '';
+      dragged.style.pointerEvents = '';
       
-      // Ellenőrizzük, hogy a cella fölé ejtettük-e
-      const cells = Array.from(document.querySelectorAll('.cell'));
+      const touch = e.changedTouches[0];
       const dropTarget = document.elementFromPoint(touch.clientX, touch.clientY);
       
-      let droppedInCell = false;
-      
-      // Ellenőrizzük, hogy cella fölé ejtettük-e
       if (dropTarget && dropTarget.classList.contains('cell')) {
-        dropPieceIntoTarget(name, dropTarget);
-        droppedInCell = true;
-      } 
-      // Ellenőrizzük, hogy pool fölé ejtettük-e
-      else if (dropTarget && (dropTarget.classList.contains('pool') || dropTarget.closest('.pool'))) {
-        dropPieceIntoPool(name);
-        droppedInCell = true;
+        handleDrop(dropTarget, dragged.dataset.name);
+      } else if (dropTarget && dropTarget.classList.contains('pool')) {
+        handlePoolDrop(dragged.dataset.name);
       }
-      
-      // Ha nem ejtettük sehova, visszahelyezzük a poolba
-      if (!droppedInCell) {
-        dropPieceIntoPool(name);
-      }
-      
-      // Visszaállítjuk a darabot
-      target.classList.remove('dragging');
-      target.style.left = '';
-      target.style.top = '';
-      target.style.width = '';
-      target.style.height = '';
       
       dragged = null;
-      checkWin();
     }
     
-    function dropPieceIntoTarget(name, targetCell) {
-      // Ellenőrizzük, hogy van-e már kép a cellában
-      const existingImg = targetCell.querySelector('img');
+    function updateTouchPosition(e) {
+      if (!dragged) return;
+      const touch = e.touches[0];
+      dragged.style.left = (touch.clientX - touchOffsetX) + 'px';
+      dragged.style.top = (touch.clientY - touchOffsetY) + 'px';
+    }
+
+    const cells = Array.from(document.querySelectorAll('.cell'));
+    cells.forEach(cell => {
+      cell.addEventListener('dragover', e => e.preventDefault());
+      cell.addEventListener('drop', onDrop);
+    });
+
+    pool.addEventListener('dragover', e => e.preventDefault());
+    pool.addEventListener('drop', e => {
+      e.preventDefault();
+      const name = e.dataTransfer.getData('text/plain');
+      handlePoolDrop(name);
+    });
+
+    function onDrop(e){
+      e.preventDefault();
+      const name = e.dataTransfer.getData('text/plain');
+      handleDrop(e.currentTarget, name);
+    }
+    
+    function handleDrop(targetCell, name) {
+      const fromCell = findCellContaining(name);
       
-      // Ha van már kép a cellában, visszarakjuk a poolba
-      if (existingImg) {
-        const prevName = existingImg.dataset.name;
-        existingImg.remove();
-        const prevImg = createTouchImage(prevName, false);
-        pool.appendChild(prevImg);
-      }
-      
-      // Eltávolítjuk a darabot a poolból, ha ott volt
       const fromPool = findInPool(name);
-      if (fromPool) {
+      if(fromPool) {
         fromPool.remove();
       }
       
-      // Hozzáadjuk az új darabot a cellához
-      const img = createTouchImage(name, true);
-      targetCell.innerHTML = '';
-      targetCell.appendChild(img);
-    }
-    
-    function dropPieceIntoPool(name) {
-      // Eltávolítjuk a darabot a cellából, ha ott volt
-      const fromCell = findCellContaining(name);
-      if (fromCell) {
-        fromCell.innerHTML = '';
+      if(fromCell){fromCell.innerHTML='';}
+      const existingImg = targetCell.querySelector('img');
+      if(existingImg){
+        const prevName = existingImg.dataset.name;
+        existingImg.remove();
+        const prevImg = createDraggableImage(prevName, false);
+        pool.appendChild(prevImg);
       }
-      
-      // Hozzáadjuk a poolhoz
-      const img = createTouchImage(name, false);
-      pool.appendChild(img);
+      const img = createDraggableImage(name, true);
+      targetCell.innerHTML='';
+      targetCell.appendChild(img);
+      checkWin();
     }
     
+    function handlePoolDrop(name) {
+      const fromCell = findCellContaining(name);
+      if(fromCell){fromCell.innerHTML='';}
+      const img = createDraggableImage(name, false);
+      pool.appendChild(img);
+      checkWin();
+    }
+
     function findCellContaining(name){
-      const cells = Array.from(document.querySelectorAll('.cell'));
       return cells.find(c => c.querySelector('img') && c.querySelector('img').alt === name) || null;
     }
     
@@ -493,7 +516,6 @@ A feladatod azonban nem ér véget a puzzle kirakásával. Keresgélj figyelmese
     }
 
     function checkWin(){
-      const cells = Array.from(document.querySelectorAll('.cell'));
       let correct = true;
       for(let i=0;i<cells.length;i++){
         const img = cells[i].querySelector('img');
