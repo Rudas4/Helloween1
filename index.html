@@ -59,24 +59,27 @@
     }
     
     #start .center {
-      background: rgba(0,0,0,0.7);
-      padding: 40px;
+      background: rgba(0, 0, 0, 0.4); /* Átlátszóbb háttér */
+      padding: 30px;
       border-radius: 12px;
       text-align: center;
-      border: 1px solid #333;
+      border: 1px solid rgba(255, 255, 255, 0.2);
       max-width: 90%;
       box-sizing: border-box;
       z-index: 1;
+      backdrop-filter: blur(5px); /* Modern blur effect */
+      -webkit-backdrop-filter: blur(5px);
     }
     
     #start h1 {
       color: #fff;
       margin: 0 0 20px;
       font-size: 32px;
+      text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
     }
     
     #start button {
-      background: #fff;
+      background: rgba(255, 255, 255, 0.9);
       color: #000;
       border: 0;
       padding: 16px 32px;
@@ -86,6 +89,14 @@
       font-weight: bold;
       width: 100%;
       max-width: 200px;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+    }
+    
+    #start button:hover {
+      background: rgba(255, 255, 255, 1);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4);
     }
 
     #game {
@@ -295,10 +306,10 @@
         padding: 25px 15px;
       }
       #start h1 {
-        font-size: 26px;
+        font-size: 28px;
       }
       #start button {
-        padding: 12px 24px;
+        padding: 14px 28px;
         font-size: 18px;
       }
     }
@@ -318,6 +329,14 @@
         aspect-ratio: 3/2;
         max-width: calc(var(--cell-w) * 3 + 12px + 24px);
       }
+      #start .center {
+        padding: 20px 15px;
+        background: rgba(0, 0, 0, 0.3); /* Még átlátszóbb mobilon */
+      }
+      #start h1 {
+        font-size: 24px;
+        margin-bottom: 15px;
+      }
     }
     
     @media (max-width: 480px) {
@@ -336,6 +355,16 @@
       .board {
         max-width: calc(var(--cell-w) * 3 + 12px + 24px);
       }
+      #start .center {
+        padding: 15px 10px;
+      }
+      #start h1 {
+        font-size: 22px;
+      }
+      #start button {
+        padding: 12px 24px;
+        font-size: 16px;
+      }
     }
     
     @media (max-width: 360px) {
@@ -347,22 +376,26 @@
         max-width: calc(var(--cell-w) * 3 + 12px + 24px);
       }
       #start h1 {
-        font-size: 22px;
+        font-size: 20px;
       }
       #start button {
         padding: 10px 20px;
-        font-size: 16px;
       }
     }
 
-    /* Extra kis képernyők */
+    /* Extra kis képernyők - itt minimalizáljuk a tartalmat */
     @media (max-height: 500px) {
       #start .center {
-        padding: 15px 10px;
+        padding: 10px;
+        max-width: 80%;
       }
       #start h1 {
-        font-size: 20px;
+        font-size: 18px;
         margin-bottom: 10px;
+      }
+      #start button {
+        padding: 8px 16px;
+        font-size: 14px;
       }
     }
   </style>
